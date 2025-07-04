@@ -1,4 +1,4 @@
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom'
 import { useEffect, useState } from 'react';
 import {
     Container, Typography, IconButton, TextField, Button, List as MUIList
@@ -9,12 +9,15 @@ import { List, TodoItem, StockItem } from '../types';
 import ToDoItem from '../components/ToDoItem';
 import StockItemComponent from '../components/StockItem';
 import { useOfflineQueue } from '../hooks/useOfflineQueue';
+import { REFRESH_INTERVAL } from "../utility/constants"
+import { capitalizeFirstLetter } from "../utility/functions"
 
 export default function ListDetail() {
     const { id } = useParams<{ id: string }>();
     const [list, setList] = useState<List | null>(null);
     const [newItem, setNewItem] = useState('');
     const { enqueue, flush } = useOfflineQueue();
+    const navigate = useNavigate();
 
     const load = async () => {
         try {
@@ -27,7 +30,7 @@ export default function ListDetail() {
 
     useEffect(() => {
         load();
-        const interval = setInterval(load, 60000);
+        const interval = setInterval(load, REFRESH_INTERVAL);
         return () => clearInterval(interval);
     }, []);
 
@@ -64,7 +67,8 @@ export default function ListDetail() {
 
     return list ? (
         <Container>
-            <Typography variant="h5">{list.name}</Typography>
+            <Button variant="outlined" onClick={() => navigate(-1)}>Back</Button>
+            <Typography variant="h5">{list.name} - {capitalizeFirstLetter(list.type)} List</Typography>
             <MUIList>
                 {(list.items as any[] ?? []).map((item) =>
                     list.type === 'todo' ? (

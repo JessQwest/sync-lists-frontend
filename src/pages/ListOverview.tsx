@@ -7,6 +7,7 @@ import { fetchLists, createList, deleteList } from '../api/listApi';
 import { List, ListType } from '../types';
 import ListCard from '../components/ListCard';
 import { useOfflineQueue } from '../hooks/useOfflineQueue';
+import { REFRESH_INTERVAL } from "../utility/constants"
 
 export default function ListOverview() {
     const [lists, setLists] = useState<List[]>([]);
@@ -25,7 +26,7 @@ export default function ListOverview() {
 
     useEffect(() => {
         loadLists();
-        const interval = setInterval(loadLists, 60000);
+        const interval = setInterval(loadLists, REFRESH_INTERVAL);
         return () => clearInterval(interval);
     }, []);
 
