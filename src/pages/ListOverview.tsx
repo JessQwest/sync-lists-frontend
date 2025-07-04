@@ -12,6 +12,7 @@ import { REFRESH_INTERVAL } from "../utility/constants"
 export default function ListOverview() {
     const [lists, setLists] = useState<List[]>([]);
     const [open, setOpen] = useState(false);
+    const [confirmDelete, setConfirmDelete] = useState<{ open: boolean, id: string | null }>({ open: false, id: null });
     const [newList, setNewList] = useState({ name: '', type: 'todo' as ListType });
     const { enqueue, flush } = useOfflineQueue();
 
@@ -40,13 +41,20 @@ export default function ListOverview() {
         }
     };
 
-    const handleDelete = async (id: string) => {
-        try {
-            await deleteList(id);
-            loadLists();
-        } catch {
-            enqueue({ fn: deleteList, args: [id] });
+    const handleDelete = (id: string) => {
+        setConfirmDelete({ open: true, id });
+    };
+
+    const confirmDeleteAction = async () => {
+        if (confirmDelete.id) {
+            try {
+                await deleteList(confirmDelete.id);
+                loadLists();
+            } catch {
+                enqueue({ fn: deleteList, args: [confirmDelete.id] });
+            }
         }
+        setConfirmDelete({ open: false, id: null });
     };
 
     return (
@@ -58,6 +66,16 @@ export default function ListOverview() {
                     <ListCard list={list} onDelete={handleDelete} />
                 ))}
             </Grid>
+            <Dialog open={confirmDelete.open} onClose={() => setConfirmDelete({ open: false, id: null })}>
+                <DialogTitle>Confirm Delete</DialogTitle>
+                <DialogContent>
+                    Are you sure you want to delete this list?
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setConfirmDelete({ open: false, id: null })}>Cancel</Button>
+                    <Button onClick={confirmDeleteAction} color="error">Delete</Button>
+                </DialogActions>
+            </Dialog>
             <Dialog open={open} onClose={() => setOpen(false)}>
                 <DialogTitle>Create New List</DialogTitle>
                 <DialogContent>
