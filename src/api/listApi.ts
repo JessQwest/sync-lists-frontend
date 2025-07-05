@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { List } from '../types';
 
-const API = 'http://192.168.1.69:8080';
+const API = "http://192.168.1.253:2081";
 
 export const fetchLists = () => axios.get<List[]>(`${API}/lists`);
 export const fetchList = (id: string) => axios.get<List>(`${API}/lists/${id}`);
