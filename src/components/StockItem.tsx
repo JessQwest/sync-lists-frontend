@@ -1,5 +1,5 @@
 import {
-    ListItem, IconButton, ListItemText, TextField, Typography
+    ListItem, IconButton, ListItemText, TextField, Typography, Box
 } from '@mui/material';
 import FlagIcon from '@mui/icons-material/Flag';
 import AddIcon from '@mui/icons-material/Add';
@@ -57,34 +57,73 @@ export default function StockItemComponent({ item, onUpdate, onDelete }: {
                 />
             ) : (
                 <ListItemText
-                    primary={item.name}
+                    primary={
+                        item.name.startsWith('-') ? (
+                            <Box
+                                sx={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    fontWeight: 'bold',
+                                }}
+                            >
+                                <Box
+                                    sx={{
+                                        flexGrow: 1,
+                                        height: '3px',
+                                        backgroundColor: 'grey.800',
+                                        mr: 1,
+                                    }}
+                                />
+                                <Typography
+                                    component="span"
+                                    sx={{ textAlign: 'center', fontWeight: 'bold' }}
+                                >
+                                    {item.name.replace(/^[-\s]+/, '')}
+                                </Typography>
+                                <Box
+                                    sx={{
+                                        flexGrow: 1,
+                                        height: '3px',
+                                        backgroundColor: 'grey.800',
+                                        ml: 1,
+                                    }}
+                                />
+                            </Box>
+                        ) : (
+                            <Typography>{item.name}</Typography>
+                        )
+                    }
                     onClick={() => {
-                        setIsEditingName(true)
+                        setIsEditingName(true);
                         setEditedName(item.name);
                     }}
                 />
             )}
-            <IconButton onClick={() => onUpdate({ ...item, count: item.count - 1 })}><RemoveIcon /></IconButton>
-            {isEditingCount ? (
-                <TextField
-                    type="number"
-                    value={editedCount}
-                    onChange={(e) => setEditedCount(Number(e.target.value))}
-                    onBlur={handleCountBlur}
-                    onKeyDown={handleCountKeyDown}
-                    autoFocus
-                    sx={{ width: 80 }}
-                />
-            ) : (
-                <Typography onClick={() => {
-                    setIsEditingCount(true)
-                    setEditedCount(item.count);
-                }}>{item.count}</Typography>
+            {!item.name.startsWith('-') && (
+                <>
+                    <IconButton onClick={() => onUpdate({ ...item, count: item.count - 1 })}><RemoveIcon /></IconButton>
+                        {isEditingCount ? (
+                            <TextField
+                                type="number"
+                                value={editedCount}
+                                onChange={(e) => setEditedCount(Number(e.target.value))}
+                                onBlur={handleCountBlur}
+                                onKeyDown={handleCountKeyDown}
+                                autoFocus
+                                sx={{ width: 80 }}
+                            />
+                        ) : (
+                            <Typography onClick={() => {
+                                setIsEditingCount(true)
+                                setEditedCount(item.count);
+                            }}>{item.count}</Typography>
+                        )}
+                        <IconButton onClick={() => onUpdate({ ...item, count: item.count + 1 })}><AddIcon /></IconButton>
+                        <IconButton onClick={() => onUpdate({ ...item, flagged: !item.flagged })}>
+                            <FlagIcon color={item.flagged ? 'error' : 'disabled'} />
+                        </IconButton>
+                </>
             )}
-            <IconButton onClick={() => onUpdate({ ...item, count: item.count + 1 })}><AddIcon /></IconButton>
-            <IconButton onClick={() => onUpdate({ ...item, flagged: !item.flagged })}>
-                <FlagIcon color={item.flagged ? 'error' : 'disabled'} />
-            </IconButton>
             <IconButton onClick={() => onDelete(item.id)}><DeleteIcon /></IconButton>
         </ListItem>
     );

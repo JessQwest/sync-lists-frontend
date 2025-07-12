@@ -1,5 +1,5 @@
 import {
-    ListItem, Checkbox, TextField, IconButton, ListItemText
+    ListItem, Checkbox, TextField, IconButton, ListItemText, Box, Typography
 } from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete';
 import React, { useState } from 'react';
@@ -28,7 +28,7 @@ export default function ToDoItem({ item, onUpdate, onDelete }: {
 
     return (
         <ListItem>
-            <Checkbox checked={item.checked} onChange={() => onUpdate({ ...item, checked: !item.checked })} />
+            {!item.name.startsWith('-') && (<Checkbox checked={item.checked} onChange={() => onUpdate({...item, checked: !item.checked})}/>)}
             {isEditing ? (
                 <TextField
                     value={editedName}
@@ -40,8 +40,45 @@ export default function ToDoItem({ item, onUpdate, onDelete }: {
                 />
             ) : (
                 <ListItemText
-                    primary={item.name}
-                    sx={{ textDecoration: item.checked ? 'line-through' : 'none' }}
+                    primary={
+                        item.name.startsWith('-') ? (
+                            <Box
+                                sx={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    fontWeight: 'bold',
+                                }}
+                            >
+                                <Box
+                                    sx={{
+                                        flexGrow: 1,
+                                        height: '3px',
+                                        backgroundColor: 'grey.800',
+                                        mr: 1,
+                                    }}
+                                />
+                                <Typography
+                                    component="span"
+                                    sx={{ textAlign: 'center',
+                                        fontWeight: 'bold',
+                                        textDecoration: item.checked ? 'line-through' : 'none'
+                                }}
+                                >
+                                    {item.name.replace(/^[-\s]+/, '')}
+                                </Typography>
+                                <Box
+                                    sx={{
+                                        flexGrow: 1,
+                                        height: '3px',
+                                        backgroundColor: 'grey.800',
+                                        ml: 1,
+                                    }}
+                                />
+                            </Box>
+                        ) : (
+                            <Typography>{item.name}</Typography>
+                        )
+                    }
                     onClick={() => {
                         setIsEditing(true)
                         setEditedName(item.name);
