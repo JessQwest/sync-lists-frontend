@@ -2,6 +2,7 @@ export type ListType = 'todo' | 'stock';
 
 export interface BaseItem {
     id: string;
+    itemorder: number | null;
     name: string;
 }
 
@@ -16,6 +17,7 @@ export interface StockItem extends BaseItem {
 
 export interface List {
     id: string;
+    itemorder: number | null;
     name: string;
     type: ListType;
     items: TodoItem[] | StockItem[];

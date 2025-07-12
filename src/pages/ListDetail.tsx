@@ -1,16 +1,29 @@
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import {
-    Container, Typography, IconButton, TextField, Button, List as MUIList
+    Container, Typography, TextField, Button, List as MUIList
 } from '@mui/material';
-import DeleteIcon from '@mui/icons-material/Delete';
-import { fetchList, addItem, deleteItem, updateItem } from '../api/listApi';
-import { List, TodoItem, StockItem } from '../types';
+import { fetchList, addItem, deleteItem, updateItem, reorderItems } from '../api/listApi'
+import { List, BaseItem, TodoItem, StockItem } from '../types'
 import ToDoItem from '../components/ToDoItem';
 import StockItemComponent from '../components/StockItem';
 import { useOfflineQueue } from '../hooks/useOfflineQueue';
 import { REFRESH_INTERVAL } from "../utility/constants"
 import { capitalizeFirstLetter } from "../utility/functions"
+
+import {
+    DndContext,
+    closestCenter,
+    DragEndEvent,
+} from '@dnd-kit/core';
+
+import {
+    SortableContext,
+    verticalListSortingStrategy,
+    arrayMove,
+} from '@dnd-kit/sortable';
+
+import SortableItemWrapper from '../components/SortableItemWrapper'; // See below for this
 
 export default function ListDetail() {
     const { id } = useParams<{ id: string }>();
@@ -32,7 +45,7 @@ export default function ListDetail() {
         load();
         const interval = setInterval(load, REFRESH_INTERVAL);
         return () => clearInterval(interval);
-    }, []);
+    }, [load]);
 
     const handleAdd = async () => {
         const item = list!.type === 'todo' ?
@@ -65,19 +78,49 @@ export default function ListDetail() {
         }
     };
 
+    const handleDragEnd = async (event: DragEndEvent) => {
+        const { active, over } = event;
+        if (!over || active.id === over.id) return;
+
+        const oldIndex = list!.items.findIndex(item => item.id === active.id);
+        const newIndex = list!.items.findIndex(item => item.id === over.id);
+
+        const newItems = arrayMove(list!.items as TodoItem[], oldIndex, newIndex);
+        const newOrder = newItems.map(item => item.id);
+
+        setList({ ...list!, items: newItems });
+
+        // ✅ Your custom function call with new order
+        console.log('New order:', newOrder);
+        console.log('List ID:', list!.id);
+
+        await reorderItems(list!.id, newOrder)
+    };
+
     return list ? (
         <Container>
             <Button variant="outlined" onClick={() => navigate(-1)}>Back</Button>
             <Typography variant="h5">{list.name} - {capitalizeFirstLetter(list.type)} List</Typography>
-            <MUIList>
-                {(list.items as any[] ?? []).map((item) =>
-                    list.type === 'todo' ? (
-                        <ToDoItem key={item.id} item={item} onUpdate={handleUpdate} onDelete={handleDelete} />
-                    ) : (
-                        <StockItemComponent key={item.id} item={item} onUpdate={handleUpdate} onDelete={handleDelete} />
-                    )
-                )}
-            </MUIList>
+
+            <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                <SortableContext
+                    items={list.items.map(item => item.id)}
+                    strategy={verticalListSortingStrategy}
+                >
+                    <MUIList>
+                        {(list.items as BaseItem[]).map((item) => (
+                            <SortableItemWrapper key={item.id} id={item.id}>
+                                {list.type === 'todo' ? (
+                                    <ToDoItem item={item as TodoItem} onUpdate={handleUpdate} onDelete={handleDelete} />
+                                ) : (
+                                    <StockItemComponent item={item as StockItem} onUpdate={handleUpdate} onDelete={handleDelete} />
+                                )}
+                            </SortableItemWrapper>
+                        ))}
+                    </MUIList>
+                </SortableContext>
+            </DndContext>
+
             <TextField fullWidth label="New Item" value={newItem} onChange={e => setNewItem(e.target.value)} />
             <Button onClick={handleAdd}>Add</Button>
         </Container>
