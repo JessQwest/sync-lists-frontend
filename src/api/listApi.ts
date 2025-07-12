@@ -11,3 +11,4 @@ export const addItem = (listId: string, item: any) => axios.post(`${API}/lists/$
 export const updateItem = (listId: string, item: any) => axios.put(`${API}/lists/${listId}/items/${item.id}`, item);
 export const deleteItem = (listId: string, itemId: string) => axios.delete(`${API}/lists/${listId}/items/${itemId}`);
 export const reorderItems = (listId: string, itemOrder: string[]) => axios.post(`${API}/lists/${listId}/reorder`, itemOrder);
+export const reorderLists = (listOrder: string[]) => axios.post(`${API}/lists/reorder`, listOrder);

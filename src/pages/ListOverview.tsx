@@ -3,11 +3,14 @@ import {
     Button, Container, Grid, Typography, Dialog, DialogTitle, DialogContent, TextField,
     DialogActions, Select, MenuItem
 } from '@mui/material';
-import { fetchLists, createList, deleteList } from '../api/listApi';
+import { fetchLists, createList, deleteList, reorderLists } from '../api/listApi';
 import { List, ListType } from '../types';
 import ListCard from '../components/ListCard';
 import { useOfflineQueue } from '../hooks/useOfflineQueue';
 import { REFRESH_INTERVAL } from "../utility/constants"
+import { closestCenter, DndContext, DragEndEvent } from "@dnd-kit/core"
+import { arrayMove, rectSortingStrategy, SortableContext } from "@dnd-kit/sortable"
+import SortableCardWrapper from "../components/SortableCardWrapper"
 
 export default function ListOverview() {
     const [lists, setLists] = useState<List[]>([]);
@@ -57,15 +60,41 @@ export default function ListOverview() {
         setConfirmDelete({ open: false, id: null });
     };
 
+    const handleGridDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
+        if (!over || active.id === over.id) return;
+
+        setLists((prev) => {
+            const oldIndex = prev.findIndex((item) => item.id === active.id);
+            const newIndex = prev.findIndex((item) => item.id === over.id);
+
+            const newLists = arrayMove(prev, oldIndex, newIndex);
+            const newOrder = newLists.map(item => item.id);
+
+            reorderLists(newOrder);
+
+            return newLists;
+        });
+    };
+
     return (
         <Container>
             <Typography variant="h4" gutterBottom>Shared Lists</Typography>
             <Button variant="contained" onClick={() => setOpen(true)}>Create List</Button>
-            <Grid container spacing={2} marginTop={2}>
-                {(Array.isArray(lists) ? lists : []).map((list) => (
-                    <ListCard list={list} onDelete={handleDelete} />
-                ))}
-            </Grid>
+            <DndContext collisionDetection={closestCenter} onDragEnd={handleGridDragEnd}>
+                <SortableContext
+                    items={(Array.isArray(lists) ? lists : []).map((list) => list.id)}
+                    strategy={rectSortingStrategy}
+                >
+                    <Grid container spacing={2} marginTop={2}>
+                        {(Array.isArray(lists) ? lists : []).map((list) => (
+                            <SortableCardWrapper key={list.id} id={list.id}>
+                                <ListCard list={list} onDelete={handleDelete} />
+                            </SortableCardWrapper>
+                        ))}
+                    </Grid>
+                </SortableContext>
+            </DndContext>
             <Dialog open={confirmDelete.open} onClose={() => setConfirmDelete({ open: false, id: null })}>
                 <DialogTitle>Confirm Delete</DialogTitle>
                 <DialogContent>
