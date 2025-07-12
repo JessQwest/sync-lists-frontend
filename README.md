@@ -1,46 +1,82 @@
-# Getting Started with Create React App
+# Sync Lists
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+This application allows you to store multiple lists on your self hosted server, with syncronisation between devices and compatability between mobile and desktop without dependance on third parties to store your information
 
-## Available Scripts
+## List types
 
-In the project directory, you can run:
+There are 2 list types available within this application:
 
-### `npm start`
+1. To-do lists allow you to cross items off as you complete them
+2. Stock lists allow you to keep track of what items you have, with a flag button for tracking other statistics (such as needing to restock an item soon)
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+## Setup for Dockerised solutions
+(for non dockerised solutions you'll still need to change the API as mentioned in step 2)
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+This is a 3 part solution, requiring this frontend application, the backend counterpart and a mysql database to store the list items. Learn more about the backend counterpart here: https://github.com/JessQwest/sync-lists-backend
 
-### `npm test`
+It's recommended that you have the backend set up first.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+1. Clone the repository locally
+2. Within `src/api/listApi.ts` update the API value to point to your endpoint. Ensure that the endpoint is a URL your client will be able to access. I used `listsbackend.mydomain.com` as mine
+3. Build the container and run. I built within linux using the ./build.sh script
 
-### `npm run build`
+### Example docker compose 
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+This setup has frontend on :2080, backend on :2081 and mysql on :3307. I've exposed both frontend and backend through an authenticated cloudflare tunnel to allow secure and private access anywhere
+```yaml
+synclists_db:
+    container_name: synclists_db
+    image: mysql:8.0
+    restart: always
+    environment:
+      MYSQL_DATABASE: 'synclists'
+      MYSQL_USER: 'mainuser'
+      MYSQL_PASSWORD: 'mainuserpassword' <--- CHANGE
+      MYSQL_ROOT_PASSWORD: 'rootpassword' <--- CHANGE
+    healthcheck:
+      test: mysqladmin ping -h 127.0.0.1 -u $$MYSQL_USER --password=$$MYSQL_PASSWORD
+      start_period: 5s
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    ports:
+      - '3307:3306'
+    expose:
+      - '3307'
+    volumes:
+      - synclists-db:/var/lib/mysql
+    stdin_open: true
+    tty: true
+    networks:
+      - synclists_network 
+      
+  sync-lists-backend:
+    container_name: sync-lists-backend
+    image: sync-lists-backend
+    ports:
+      - '2081:8080'
+    restart: unless-stopped
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://synclists_db:3306/synclists
+      - SPRING_DATASOURCE_USERNAME=mainuser
+      - SPRING_DATASOURCE_PASSWORD=mainuserpassword <-- CHANGE
+      - SERVER_PORT=8080
+    networks:
+      - synclists_network
+      
+  sync-lists-frontend:
+    container_name: sync-lists-frontend
+    image: sync-lists-frontend
+    ports:
+      - '2080:80'
+    restart: unless-stopped
+    networks:
+      - synclists_network
+ 
+volumes:
+  synclists-db:
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
-
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
-
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
-
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
+networks:
+  synclists_network:
+    driver: bridge
+```
