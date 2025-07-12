@@ -13,6 +13,7 @@ import { arrayMove, rectSortingStrategy, SortableContext } from "@dnd-kit/sortab
 import SortableCardWrapper from "../components/SortableCardWrapper"
 
 export default function ListOverview() {
+    const [isDragging, setIsDragging] = useState(false);
     const [lists, setLists] = useState<List[]>([]);
     const [open, setOpen] = useState(false);
     const [confirmDelete, setConfirmDelete] = useState<{ open: boolean, id: string | null }>({ open: false, id: null });
@@ -33,6 +34,20 @@ export default function ListOverview() {
         const interval = setInterval(loadLists, REFRESH_INTERVAL);
         return () => clearInterval(interval);
     }, []);
+
+    useEffect(() => {
+        const preventTouchMove = (e: TouchEvent) => {
+            if (isDragging) {
+                e.preventDefault();
+            }
+        };
+
+        document.addEventListener('touchmove', preventTouchMove, { passive: false });
+
+        return () => {
+            document.removeEventListener('touchmove', preventTouchMove);
+        };
+    }, [isDragging]);
 
     const handleCreate = async () => {
         try {
@@ -81,7 +96,14 @@ export default function ListOverview() {
         <Container>
             <Typography variant="h4" gutterBottom>Shared Lists</Typography>
             <Button variant="contained" onClick={() => setOpen(true)}>Create List</Button>
-            <DndContext collisionDetection={closestCenter} onDragEnd={handleGridDragEnd}>
+            <DndContext
+                collisionDetection={closestCenter}
+                onDragStart={() => setIsDragging(true)}
+                onDragEnd={(e) => {
+                    setIsDragging(false);
+                    handleGridDragEnd(e as DragEndEvent);
+                }}
+            >
                 <SortableContext
                     items={(Array.isArray(lists) ? lists : []).map((list) => list.id)}
                     strategy={rectSortingStrategy}

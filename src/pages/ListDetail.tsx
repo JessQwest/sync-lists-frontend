@@ -26,6 +26,7 @@ import {
 import SortableItemWrapper from '../components/SortableItemWrapper'; // See below for this
 
 export default function ListDetail() {
+    const [isDragging, setIsDragging] = useState(false);
     const { id } = useParams<{ id: string }>();
     const [list, setList] = useState<List | null>(null);
     const [newItem, setNewItem] = useState('');
@@ -45,7 +46,22 @@ export default function ListDetail() {
         load();
         const interval = setInterval(load, REFRESH_INTERVAL);
         return () => clearInterval(interval);
-    }, [load]);
+    }, []);
+
+
+    useEffect(() => {
+        const preventTouchMove = (e: TouchEvent) => {
+            if (isDragging) {
+                e.preventDefault();
+            }
+        };
+
+        document.addEventListener('touchmove', preventTouchMove, { passive: false });
+
+        return () => {
+            document.removeEventListener('touchmove', preventTouchMove);
+        };
+    }, [isDragging]);
 
     const handleAdd = async () => {
         const item = list!.type === 'todo' ?
@@ -102,7 +118,14 @@ export default function ListDetail() {
             <Button variant="outlined" onClick={() => navigate(-1)}>Back</Button>
             <Typography variant="h5">{list.name} - {capitalizeFirstLetter(list.type)} List</Typography>
 
-            <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <DndContext
+                collisionDetection={closestCenter}
+                onDragStart={() => setIsDragging(true)}
+                onDragEnd={(e) => {
+                    setIsDragging(false);
+                    handleDragEnd(e as DragEndEvent);
+                }}
+            >
                 <SortableContext
                     items={list.items.map(item => item.id)}
                     strategy={verticalListSortingStrategy}
