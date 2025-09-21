@@ -64,6 +64,7 @@ export default function ListDetail() {
     }, [isDragging]);
 
     const handleAdd = async () => {
+        if (!newItem.trim()) return
         const item = list!.type === 'todo' ?
             { name: newItem, checked: false } :
             { name: newItem, count: 0 };
@@ -144,7 +145,17 @@ export default function ListDetail() {
                 </SortableContext>
             </DndContext>
 
-            <TextField fullWidth label="New Item" value={newItem} onChange={e => setNewItem(e.target.value)} />
+            <TextField
+                fullWidth
+                label="New Item"
+                value={newItem}
+                onChange={e => setNewItem(e.target.value)}
+                onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                        handleAdd();
+                    }
+                }}
+            />
             <Button onClick={handleAdd}>Add</Button>
         </Container>
     ) : null;
